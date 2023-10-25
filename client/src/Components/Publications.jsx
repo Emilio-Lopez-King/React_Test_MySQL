@@ -40,6 +40,17 @@ const Publications = () => {
     }
   }, [searchQuery, articles]);
 
+  function renderArticles(filteredArticles) {
+    if (Array.isArray(filteredArticles) && filteredArticles.length > 0) {
+      const articleElements = filteredArticles.map((article) => (
+        <Articles key={article.articleid} article={article} />
+      ));
+
+      return <div>{articleElements}</div>;
+    } else {
+      return <div>No se encontraron artículos.</div>;
+    }
+  }
   return (
     <Fragment>
       <div className="mb-4">
@@ -51,11 +62,7 @@ const Publications = () => {
           className="w-full border border-gray-300 rounded-md p-2"
         />
       </div>
-      <div>
-        {filteredArticles.map((article) => (
-          <Articles key={article._id} article={article} />
-        ))}
-      </div>
+      <div>{renderArticles(filteredArticles)}</div>
     </Fragment>
   );
 };

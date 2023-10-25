@@ -1,21 +1,33 @@
 const express = require("express");
 const router = express.Router();
-const Article = require("../Models/Articles");
-const { check, validationResult } = require("express-validator");
+const { createDBConnection } = require("../Conections/database");
 
-// Crear un artículo
-router.post("/InsertArticles", [
-  check("title").notEmpty(),
-  check("author").notEmpty(),
-  check("content").notEmpty(),
-], async (req, res) => {
+// Ruta para crear un artículo
+router.post("/InsertArticles", async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    const { title, author, content } = req.body;
+
+    if (!title || !author || !content) {
+      return res.status(400).json({ error: "Todos los campos son obligatorios." });
     }
-    const newArticle = new Article(req.body);
-    await newArticle.save();
+
+    const connection = await createDBConnection();
+
+    const [rows] = await connection.execute("CALL InsertArticle(?, ?, ?)", [title, author, content]);
+
+    await connection.end();
+
+    if (rows[0].message) {
+      return res.status(400).json({ error: rows[0].message });
+    }
+
+    const newArticle = {
+      id: rows[0].insertId,
+      title,
+      author,
+      content,
+    };
+
     res.json(newArticle);
   } catch (error) {
     console.error(error);
@@ -23,69 +35,76 @@ router.post("/InsertArticles", [
   }
 });
 
-// Obtener todos los artículos
+// Ruta para obtener todos los artículos
 router.get("/GetArticles", async (req, res) => {
   try {
-    let message = 'artículos encontrados';
-    const articles = await Article.find().exec();
-    if(!articles.length) {
-      message = 'No existen artículos publicados aun.';
-  }
-  return res.status(200).json(articles);
-  } 
-  catch (error) {
+    const connection = await createDBConnection();
+
+    const [rows] = await connection.execute("CALL GetArticles()");
+
+    await connection.end();
+
+    if (rows[0].message) {
+      return res.status(200).json({ message: rows[0].message });
+    }
+
+    res.status(200).json(rows[0]);
+  } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error al obtener los artículos: "+ message });
+    res.status(500).json({ error: "Error al obtener los artículos" });
   }
 });
 
-router.put("/EditArticle/:articleId", [
-  check("title").notEmpty(),
-  check("author").notEmpty(),
-  check("content").notEmpty(),
-], async (req, res) => {
+// Ruta para editar un artículo
+router.put("/EditArticle/:articleId", async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    const { title, author, content } = req.body;
+    const { articleId } = req.params;
+
+    if (!title || !author || !content) {
+      return res.status(400).json({ error: "Todos los campos son obligatorios." });
     }
 
-    const { articleId } = req.params;
-    const updatedArticleData = req.body;
+    const connection = await createDBConnection();
 
-    const updatedArticle = await Article.findByIdAndUpdate(
-      articleId,
-      updatedArticleData,
-      { new: true }
-    );
+    const [rows] = await connection.execute("CALL EditArticle(?, ?, ?, ?)", [articleId, title, author, content]);
 
-    if (!updatedArticle) {
+    await connection.end();
+
+    if (rows[0].message) {
+      return res.status(400).json({ error: rows[0].message });
+    }
+
+    if (rows[0].affectedRows === 0) {
       return res.status(404).json({ error: "Artículo no encontrado" });
     }
 
-    res.json(updatedArticle);
+    res.status(200).json({ message: "Artículo actualizado con éxito." });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al editar el artículo" });
   }
 });
 
+// Ruta para eliminar un artículo
 router.delete("/DeleteArticle/:id", async (req, res) => {
   try {
-    const articleId = req.params.id;
+    const { id } = req.params;
 
-    const existingArticle = await Article.findById(articleId);
+    const connection = await createDBConnection();
 
-    if (!existingArticle) {
-      return res.status(404).json({ error: "El artículo no existe." });
+    const [rows] = await connection.execute("CALL DeleteArticle(?)", [id]);
+
+    await connection.end();
+
+    if (rows[0].message) {
+      return res.status(404).json({ error: rows[0].message });
     }
 
-    await Article.findByIdAndDelete(articleId);
-
-    res.json({ message: "El artículo se ha eliminado con éxito." });
+    res.status(200).json({ message: "El artículo se ha eliminado con éxito." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error al eliminar el artículo." });
+    res.status(500).json({ error: "Error al eliminar el artículo" });
   }
 });
 

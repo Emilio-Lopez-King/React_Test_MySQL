@@ -42,7 +42,7 @@ const Articles = ({ article }) => {
 
   const confirmDelete = (article) => {
     deleteArticle(
-      article._id,
+      article.articleid,
       (data) => {
         toast.success("El artículo se ha eliminado con éxito");
         setShowModal(false);

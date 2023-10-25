@@ -63,7 +63,7 @@ const AddArticle = () => {
     e.preventDefault();
     if (articleData.title && articleData.author && articleData.content) {
       editArticle(
-        selectedArticle._id,
+        selectedArticle.articleid,
         articleData,
         (data) => {
           toast.success("El artículo se ha actualizado con éxito");

@@ -1,6 +1,9 @@
 module.exports = {
     database: {
-      URI: "mongodb://127.0.0.1:27017/Test_Blog_DB",
+      host: "localhost",     
+      user: "root",     
+      password: "password123123.", 
+      database: "Test_Blog_DB",
     }
   };
   
